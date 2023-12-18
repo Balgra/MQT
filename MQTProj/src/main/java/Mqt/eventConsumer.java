@@ -25,11 +25,16 @@ public class eventConsumer {
         KafkaProducer<String, String> producer = new KafkaProducer<>(producerProps);
 
         String consumerTopic = "sensor_events";
-        String producerTopic = "color_statistics";
+        String producerTopicGrey = "color_grey";
+        String producerTopicBlue = "color_blue";
+        String producerTopicGreen = "color_green";
+        String producerTopicPercentage = "color_percentage";
 
         consumer.subscribe(Collections.singletonList(consumerTopic));
 
-        Map<String, Integer> colorCounts = new HashMap<>();
+        Map<String, Integer> colorCountsGrey = new HashMap<>();
+        Map<String, Integer> colorCountsBlue = new HashMap<>();
+        Map<String, Integer> colorCountsGreen = new HashMap<>();
         int totalMessages = 0;
 
         while (!Thread.currentThread().isInterrupted()) {
@@ -47,17 +52,59 @@ public class eventConsumer {
                     // Print the color and city name
                     System.out.println(message);
 
-                    // Update color counts
+                    // Update color counts for respective colors
+                    Map<String, Integer> colorCounts;
+                    switch (color) {
+                        case "GREY":
+                            colorCounts = colorCountsGrey;
+                            break;
+                        case "BLUE":
+                            colorCounts = colorCountsBlue;
+                            break;
+                        case "GREEN":
+                            colorCounts = colorCountsGreen;
+                            break;
+                        default:
+                            colorCounts = new HashMap<>();
+                            break;
+                    }
+
                     int count = colorCounts.getOrDefault(color, 0);
                     colorCounts.put(color, count + 1);
                     totalMessages++;
 
-                    // Send color statistics to another Kafka topic
-                    double percentage = (count + 1) * 100.0 / totalMessages;
-                    ProducerRecord<String, String> statsRecord = new ProducerRecord<>(producerTopic, color, "Count: " + (count + 1) + ", Percentage: " + String.format("%.2f%%", percentage));
+                    // Send color statistics to respective Kafka topics
+                    String topicToSend;
+                    switch (color) {
+                        case "GREY":
+                            topicToSend = producerTopicGrey;
+                            break;
+                        case "BLUE":
+                            topicToSend = producerTopicBlue;
+                            break;
+                        case "GREEN":
+                            topicToSend = producerTopicGreen;
+                            break;
+                        default:
+                            topicToSend = "";
+                            break;
+                    }
+                    ProducerRecord<String, String> statsRecord = new ProducerRecord<>(topicToSend, color, "Count: " + (count + 1));
                     producer.send(statsRecord);
                 }
 
+                // Send color percentages to another Kafka topic
+                if (totalMessages > 0) {
+                    double percentageGrey = colorCountsGrey.getOrDefault("GREY", 0) * 100.0 / totalMessages;
+                    double percentageBlue = colorCountsBlue.getOrDefault("BLUE", 0) * 100.0 / totalMessages;
+                    double percentageGreen = colorCountsGreen.getOrDefault("GREEN", 0) * 100.0 / totalMessages;
+
+                    ProducerRecord<String, String> percentageRecord = new ProducerRecord<>(producerTopicPercentage, "Color Percentages",
+                            "Grey: " + String.format("%.2f%%", percentageGrey) +
+                                    ", Blue: " + String.format("%.2f%%", percentageBlue) +
+                                    ", Green: " + String.format("%.2f%%", percentageGreen));
+                    producer.send(percentageRecord);
+                }
             } catch (Exception e) {
                 Thread.currentThread().interrupt(); // Preserve the interrupt status
                 break; // Exit the loop or perform cleanup

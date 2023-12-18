@@ -21,7 +21,7 @@ public class eventProducer {
         String[] colors = {"GREEN", "BLUE", "GREY"};
         Random random = new Random();
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 20; i++) {
             String name = names[random.nextInt(names.length)];
             String city = cities[random.nextInt(cities.length)];
             String color = colors[random.nextInt(colors.length)];

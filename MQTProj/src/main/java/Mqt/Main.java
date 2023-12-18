@@ -42,7 +42,7 @@ public class Main {
             consumerThread.start();
 
             // Wait for some time (e.g., 30 seconds) and then stop producer and consumer threads
-            Thread.sleep(30000);
+            Thread.sleep(100000);
 
             producerThread.interrupt();
             consumerThread.interrupt();
